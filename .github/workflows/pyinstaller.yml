@@ -1,0 +1,38 @@
+name: pyinstaller
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install tokenizers pyinstaller
+    - name: Get commit SHA
+      run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+    - name: Build
+      run: pyinstaller main.py
+    - name: Package ipa
+      run: |
+        mkdir Payload
+        cp -r dist/main Payload
+        zip -r TabbyAPI-nightly-${{ env.sha_short }}.zip Payload
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: TabbyAPI-nightly-${{ env.sha_short }}.zip
+        path: TabbyAPI-nightly-${{ env.sha_short }}.zip
+        if-no-files-found: error
